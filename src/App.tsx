@@ -71,6 +71,14 @@ export const App: React.FC = () => {
     }
   }, [dispatch]);
 
+  useHotkeys('mod+z', () => {
+    dispatch({ type: 'UNDO' });
+  }, [dispatch]);
+
+  useHotkeys('mod+shift+z', () => {
+    dispatch({ type: 'REDO' });
+  }, [dispatch]);
+
   useHotkeys('esc', () => {
     const store = useGraphStore.getState();
     if (store.editor.pendingEdgeSource || store.editor.editingWeightEdge) {
@@ -105,6 +113,7 @@ export const App: React.FC = () => {
         <span>R — Reset</span>
         <span>Del — Delete hovered</span>
         <span>Esc — Cancel</span>
+        <span>⌘Z / ⇧⌘Z — Undo / Redo</span>
         <span>Add Node mode + click — New node</span>
         <span>Drag node — Move</span>
         <span>Add Edge mode + click two nodes — Connect</span>
