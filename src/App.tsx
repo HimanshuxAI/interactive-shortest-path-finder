@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { useHotkeys } from 'react-hotkeys-hook';
 import { GraphCanvas } from './graph/GraphCanvas';
 import { Toolbar } from './panels/Toolbar';
 import { QueueTray } from './panels/QueueTray';
@@ -33,60 +32,70 @@ export const App: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [isPlaying, playbackSpeed, steps.length, currentStepIndex]);
 
-  useHotkeys(' ', () => {
-    if (algorithm.steps.length > 0) {
-      const { isPlaying } = algorithm;
-      if (isPlaying) {
-        dispatch({ type: 'PAUSE' });
-      } else {
-        dispatch({ type: 'PLAY' });
+  useEffect(() => {
+    const isTypingTarget = (target: EventTarget | null) => {
+      const element = target as HTMLElement | null;
+      if (!element) return false;
+      const tag = element.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || element.isContentEditable;
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const store = useGraphStore.getState();
+      const { algorithm: algo, editor } = store;
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        store.dispatch({ type: e.shiftKey ? 'REDO' : 'UNDO' });
+        return;
       }
-    }
-  }, [algorithm.steps.length, algorithm.isPlaying, dispatch]);
 
-  useHotkeys('left', () => {
-    if (algorithm.steps.length > 0 && algorithm.currentStepIndex > 0) {
-      dispatch({ type: 'PREV_STEP' });
-    }
-  }, [algorithm.steps.length, algorithm.currentStepIndex, dispatch]);
+      // Everything below is a bare key, so leave form controls alone.
+      if (isTypingTarget(e.target)) return;
 
-  useHotkeys('right', () => {
-    if (algorithm.steps.length > 0 && algorithm.currentStepIndex < algorithm.steps.length - 1) {
-      dispatch({ type: 'NEXT_STEP' });
-    }
-  }, [algorithm.steps.length, algorithm.currentStepIndex, dispatch]);
+      switch (e.key) {
+        case ' ':
+          if (algo.steps.length > 0) {
+            e.preventDefault();
+            store.dispatch({ type: algo.isPlaying ? 'PAUSE' : 'PLAY' });
+          }
+          break;
+        case 'ArrowLeft':
+          if (algo.steps.length > 0 && algo.currentStepIndex > 0) {
+            e.preventDefault();
+            store.dispatch({ type: 'PREV_STEP' });
+          }
+          break;
+        case 'ArrowRight':
+          if (algo.steps.length > 0 && algo.currentStepIndex < algo.steps.length - 1) {
+            e.preventDefault();
+            store.dispatch({ type: 'NEXT_STEP' });
+          }
+          break;
+        case 'r':
+        case 'R':
+          if (algo.steps.length > 0) store.dispatch({ type: 'RESET' });
+          break;
+        case 'Delete':
+        case 'Backspace':
+          if (editor.hoveredNode) store.dispatch({ type: 'REMOVE_NODE', id: editor.hoveredNode });
+          else if (editor.hoveredEdge) store.dispatch({ type: 'REMOVE_EDGE', id: editor.hoveredEdge });
+          break;
+        case 'Escape':
+          if (editor.pendingEdgeSource || editor.editingWeightEdge) {
+            store.dispatch({ type: 'SET_PENDING_EDGE_SOURCE', id: null });
+            store.dispatch({ type: 'SET_EDITING_WEIGHT', id: null });
+            store.dispatch({ type: 'SET_MODE', mode: 'select' });
+          }
+          break;
+        default:
+          break;
+      }
+    };
 
-  useHotkeys('r', () => {
-    if (algorithm.steps.length > 0) {
-      dispatch({ type: 'RESET' });
-    }
-  }, [algorithm.steps.length, dispatch]);
-
-  useHotkeys('delete', () => {
-    const { editor } = useGraphStore.getState();
-    if (editor.hoveredNode) {
-      dispatch({ type: 'REMOVE_NODE', id: editor.hoveredNode });
-    } else if (editor.hoveredEdge) {
-      dispatch({ type: 'REMOVE_EDGE', id: editor.hoveredEdge });
-    }
-  }, [dispatch]);
-
-  useHotkeys('mod+z', () => {
-    dispatch({ type: 'UNDO' });
-  }, [dispatch]);
-
-  useHotkeys('mod+shift+z', () => {
-    dispatch({ type: 'REDO' });
-  }, [dispatch]);
-
-  useHotkeys('esc', () => {
-    const store = useGraphStore.getState();
-    if (store.editor.pendingEdgeSource || store.editor.editingWeightEdge) {
-      store.dispatch({ type: 'SET_PENDING_EDGE_SOURCE', id: null });
-      store.dispatch({ type: 'SET_EDITING_WEIGHT', id: null });
-      store.dispatch({ type: 'SET_MODE', mode: 'select' });
-    }
-  }, [dispatch]);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
