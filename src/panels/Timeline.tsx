@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import React, { useEffect } from 'react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useGraphStore } from '../graph/store';
 import { spring } from '../styles/tokens';
 
@@ -7,10 +7,17 @@ export const Timeline: React.FC = () => {
   const { algorithm, dispatch, stepForward, stepBackward, togglePlayback, setPlaybackSpeed, resetAlgorithm } = useGraphStore();
   const { steps, currentStepIndex, isPlaying, playbackSpeed } = algorithm;
 
-  if (steps.length === 0) return null;
-
-  const progress = useMotionValue(currentStepIndex / Math.max(1, steps.length - 1));
+  // Hooks must run before the early return, otherwise starting a run changes
+  // the hook count and React throws.
+  const progress = useMotionValue(0);
   const springProgress = useSpring(progress, { stiffness: 300, damping: 25 });
+  const progressWidth = useTransform(springProgress, v => `${Math.max(0, Math.min(1, v)) * 100}%`);
+
+  useEffect(() => {
+    progress.set(currentStepIndex / Math.max(1, steps.length - 1));
+  }, [currentStepIndex, steps.length, progress]);
+
+  if (steps.length === 0) return null;
 
   const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
@@ -133,7 +140,7 @@ export const Timeline: React.FC = () => {
             top: 0,
             left: 0,
             height: '100%',
-            width: springProgress,
+            width: progressWidth,
             background: 'var(--color-coral)',
             borderRadius: 4,
           }}
