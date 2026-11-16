@@ -24,7 +24,7 @@ export const ExportMenu: React.FC = () => {
   };
 
   const handleExportImage = () => {
-    const svg = document.querySelector('svg') as SVGSVGElement;
+    const svg = document.querySelector('[data-graph-container] svg') as SVGSVGElement | null;
     exportImage(svg);
     setIsOpen(false);
   };

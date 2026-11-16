@@ -11,6 +11,8 @@ import type {
 import { computeDijkstraSteps } from '../algorithms/dijkstra';
 import { applyStepToGraph, statusForStep } from './graphState';
 import { createDefaultGraph } from './defaultGraph';
+import { computeGraphBounds, serializeSvgForExport } from './svgExport';
+import { nodeSize } from '../styles/tokens';
 
 type StoreState = AppState & {
   dispatch: (action: AppAction) => void;
@@ -479,13 +481,13 @@ export const useGraphStore = create<StoreState>()(
 
       exportImage: (svgElement: SVGSVGElement | null) => {
         if (!svgElement) return;
-        const serializer = new XMLSerializer();
-        const source = serializer.serializeToString(svgElement);
+        const bounds = computeGraphBounds(get().graph.nodes, nodeSize.default);
+        const source = serializeSvgForExport(svgElement, bounds);
         const blob = new Blob([source], { type: 'image/svg+xml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `graph-${Date.now()}.svg`;
+        a.download = `shortest-path-${Date.now()}.svg`;
         a.click();
         URL.revokeObjectURL(url);
       },
