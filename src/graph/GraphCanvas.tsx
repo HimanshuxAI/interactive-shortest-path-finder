@@ -13,16 +13,23 @@ export const GraphCanvas: React.FC = () => {
 
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [viewportMotion] = useState(() => ({ x: useMotionValue(viewport.x), y: useMotionValue(viewport.y), scale: useMotionValue(viewport.scale) }));
-  const [springViewport] = useState(() => ({
-    x: useSpring(viewportMotion.x, spring.direct),
-    y: useSpring(viewportMotion.y, spring.direct),
-    scale: useSpring(viewportMotion.scale, { stiffness: 300, damping: 25 }),
-  }));
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const motionX = useMotionValue(viewport.x);
+  const motionY = useMotionValue(viewport.y);
+  const motionScale = useMotionValue(viewport.scale);
+
+  const springX = useSpring(motionX, spring.direct);
+  const springY = useSpring(motionY, spring.direct);
+  const springScale = useSpring(motionScale, { stiffness: 300, damping: 25 });
+
+  useEffect(() => {
+    motionX.set(viewport.x);
+    motionY.set(viewport.y);
+    motionScale.set(viewport.scale);
+  }, [viewport.x, viewport.y, viewport.scale, motionX, motionY, motionScale]);
+
+  const handleWheelNative = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    const { scale, x, y } = viewportMotion;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
@@ -30,18 +37,26 @@ export const GraphCanvas: React.FC = () => {
     const mouseY = e.clientY - rect.top;
 
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(0.3, Math.min(3, scale.get() * zoomFactor));
+    const currentScale = motionScale.get();
+    const newScale = Math.max(0.3, Math.min(3, currentScale * zoomFactor));
+    const scaleRatio = newScale / currentScale;
 
-    const scaleRatio = newScale / scale.get();
-    const newX = mouseX - (mouseX - x.get()) * scaleRatio;
-    const newY = mouseY - (mouseY - y.get()) * scaleRatio;
+    const newX = mouseX - (mouseX - motionX.get()) * scaleRatio;
+    const newY = mouseY - (mouseY - motionY.get()) * scaleRatio;
 
-    scale.set(newScale);
-    x.set(newX);
-    y.set(newY);
+    motionScale.set(newScale);
+    motionX.set(newX);
+    motionY.set(newY);
 
     dispatch({ type: 'SET_VIEWPORT', viewport: { x: newX, y: newY, scale: newScale } });
-  }, [viewportMotion, dispatch]);
+  }, [motionX, motionY, motionScale, dispatch]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheelNative, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheelNative);
+  }, [handleWheelNative]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -49,25 +64,25 @@ export const GraphCanvas: React.FC = () => {
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       e.preventDefault();
       setIsPanning(true);
-      setPanStart({ x: e.clientX - viewportMotion.x.get(), y: e.clientY - viewportMotion.y.get() });
+      setPanStart({ x: e.clientX - motionX.get(), y: e.clientY - motionY.get() });
     } else if (e.button === 0 && editor.mode === 'select' && !isGraphElement) {
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
-        const x = (e.clientX - rect.left - viewportMotion.x.get()) / viewportMotion.scale.get();
-        const y = (e.clientY - rect.top - viewportMotion.y.get()) / viewportMotion.scale.get();
+        const x = (e.clientX - rect.left - motionX.get()) / motionScale.get();
+        const y = (e.clientY - rect.top - motionY.get()) / motionScale.get();
         addNodeAt({ x, y });
       }
     }
-  }, [editor.mode, viewportMotion, addNodeAt]);
+  }, [editor.mode, motionX, motionY, motionScale, addNodeAt]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isPanning) return;
     const newX = e.clientX - panStart.x;
     const newY = e.clientY - panStart.y;
-    viewportMotion.x.set(newX);
-    viewportMotion.y.set(newY);
-    dispatch({ type: 'SET_VIEWPORT', viewport: { x: newX, y: newY, scale: viewportMotion.scale.get() } });
-  }, [isPanning, panStart, viewportMotion, dispatch]);
+    motionX.set(newX);
+    motionY.set(newY);
+    dispatch({ type: 'SET_VIEWPORT', viewport: { x: newX, y: newY, scale: motionScale.get() } });
+  }, [isPanning, panStart, motionX, motionY, motionScale, dispatch]);
 
   const handleMouseUp = useCallback(() => {
     if (isPanning) {
@@ -79,9 +94,9 @@ export const GraphCanvas: React.FC = () => {
     if (isPanning) setIsPanning(false);
   }, [isPanning]);
 
-  const transformX = useTransform(springViewport.x, v => `${v}px`);
-  const transformY = useTransform(springViewport.y, v => `${v}px`);
-  const transformScale = useTransform(springViewport.scale, v => `${v}`);
+  const transformX = useTransform(springX, v => `${v}px`);
+  const transformY = useTransform(springY, v => `${v}px`);
+  const transformScale = useTransform(springScale, v => `${v}`);
 
   const radius = nodeSize.default;
 
@@ -96,7 +111,6 @@ export const GraphCanvas: React.FC = () => {
         background: 'var(--color-bg)',
         touchAction: 'none',
       }}
-      onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
