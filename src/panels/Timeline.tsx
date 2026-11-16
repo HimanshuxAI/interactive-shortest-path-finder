@@ -4,7 +4,7 @@ import { useGraphStore } from '../graph/store';
 import { spring } from '../styles/tokens';
 
 export const Timeline: React.FC = () => {
-  const { algorithm, dispatch, stepForward, stepBackward, togglePlayback, setPlaybackSpeed, resetAlgorithm } = useGraphStore();
+  const { algorithm, dispatch, stepForward, stepBackward, togglePlayback, setPlaybackSpeed } = useGraphStore();
   const { steps, currentStepIndex, isPlaying, playbackSpeed } = algorithm;
 
   // Hooks must run before the early return, otherwise starting a run changes
@@ -25,21 +25,6 @@ export const Timeline: React.FC = () => {
     dispatch({ type: 'GOTO_STEP', index });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      togglePlayback();
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      stepBackward();
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      stepForward();
-    } else if (e.key === 'r' || e.key === 'R') {
-      resetAlgorithm();
-    }
-  };
-
   return (
     <motion.div
       initial={{ y: 100, opacity: 0 }}
@@ -58,7 +43,6 @@ export const Timeline: React.FC = () => {
         boxShadow: 'var(--shadow-lg)',
         border: '1px solid var(--color-border)',
       }}
-      onKeyDown={handleKeyDown}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <motion.button

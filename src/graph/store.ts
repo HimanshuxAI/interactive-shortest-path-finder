@@ -17,15 +17,11 @@ import { nodeSize } from '../styles/tokens';
 type StoreState = AppState & {
   dispatch: (action: AppAction) => void;
   addNodeAt: (position: Point, label?: string) => void;
-  startEdgeFrom: (nodeId: string) => void;
-  completeEdgeTo: (targetId: string, weight: number) => void;
-  runAlgorithm: (source: string, target: string) => void;
   stepForward: () => void;
   stepBackward: () => void;
   togglePlayback: () => void;
   setPlaybackSpeed: (speed: number) => void;
   resetAlgorithm: () => void;
-  applyCurrentStep: () => void;
   saveGraph: () => void;
   loadGraph: () => void;
   exportGraph: () => void;
@@ -37,10 +33,6 @@ const MAX_HISTORY = 50;
 
 function generateNodeId(): string {
   return `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function generateEdgeId(): string {
-  return `edge_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
 const defaultGraph: GraphData = { nodes: [], edges: [] };
@@ -377,16 +369,6 @@ export const useGraphStore = create<StoreState>()(
             break;
           }
 
-          case 'APPLY_STEP': {
-            const step = action.step;
-            const newGraph = applyStepToGraph(state.graph, step, state.algorithm.sourceNode, state.algorithm.targetNode);
-            const newStatus = step.type === 'complete' ? 'complete' : step.type === 'no-path' ? 'no-path' : 'running';
-            set({
-              graph: newGraph,
-              algorithm: { ...state.algorithm, status: newStatus, currentStepIndex: state.algorithm.steps.indexOf(step) },
-            });
-            break;
-          }
         }
       },
 
@@ -398,34 +380,6 @@ export const useGraphStore = create<StoreState>()(
           type: 'ADD_NODE',
           node: { id: generateNodeId(), label: defaultLabel, position, state: 'unvisited', distance: null },
         });
-      },
-
-      startEdgeFrom: (nodeId: string) => {
-        get().dispatch({ type: 'SET_MODE', mode: 'addEdge' });
-        get().dispatch({ type: 'SET_PENDING_EDGE_SOURCE', id: nodeId });
-      },
-
-      completeEdgeTo: (targetId: string, weight: number) => {
-        const state = get();
-        const { pendingEdgeSource } = state.editor;
-        if (!pendingEdgeSource || pendingEdgeSource === targetId) {
-          get().dispatch({ type: 'SET_MODE', mode: 'select' });
-          get().dispatch({ type: 'SET_PENDING_EDGE_SOURCE', id: null });
-          return;
-        }
-        const exists = state.graph.edges.some(e => e.source === pendingEdgeSource && e.target === targetId);
-        if (!exists) {
-          get().dispatch({
-            type: 'ADD_EDGE',
-            edge: { id: generateEdgeId(), source: pendingEdgeSource, target: targetId, weight, state: 'default', flowProgress: 0 },
-          });
-        }
-        get().dispatch({ type: 'SET_MODE', mode: 'select' });
-        get().dispatch({ type: 'SET_PENDING_EDGE_SOURCE', id: null });
-      },
-
-      runAlgorithm: (source: string, target: string) => {
-        get().dispatch({ type: 'START', source, target });
       },
 
       stepForward: () => get().dispatch({ type: 'NEXT_STEP' }),
@@ -443,13 +397,6 @@ export const useGraphStore = create<StoreState>()(
       setPlaybackSpeed: (speed: number) => get().dispatch({ type: 'SET_SPEED', speed }),
 
       resetAlgorithm: () => get().dispatch({ type: 'RESET' }),
-
-      applyCurrentStep: () => {
-        const { steps, currentStepIndex } = get().algorithm;
-        if (currentStepIndex >= 0 && currentStepIndex < steps.length) {
-          get().dispatch({ type: 'APPLY_STEP', step: steps[currentStepIndex] });
-        }
-      },
 
       saveGraph: () => {
         const data = JSON.stringify(get().graph, null, 2);

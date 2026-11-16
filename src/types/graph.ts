@@ -100,8 +100,7 @@ export type AlgorithmAction =
   | { type: 'PLAY' }
   | { type: 'PAUSE' }
   | { type: 'SET_SPEED'; speed: number }
-  | { type: 'RESET' }
-  | { type: 'APPLY_STEP'; step: DijkstraStep };
+  | { type: 'RESET' };
 
 export type ViewportAction =
   | { type: 'SET_VIEWPORT'; viewport: AppState['viewport'] };
