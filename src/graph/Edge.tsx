@@ -27,10 +27,29 @@ const stateStrokeWidth: Record<string, number> = {
 };
 
 export const Edge: React.FC<EdgeProps> = React.memo(({ edge, sourceNode, targetNode, radius }) => {
-  if (!sourceNode || !targetNode) return null;
+  const showWeightEdit = useGraphStore(s => s.editor.editingWeightEdge === edge.id);
+  const [editWeight, setEditWeight] = React.useState(String(edge.weight));
 
   const flowProgress = useMotionValue(0);
   const springFlow = useSpring(flowProgress, { stiffness: 180, damping: 20 });
+
+  React.useEffect(() => {
+    if (edge.state !== 'relaxed' && edge.state !== 'path') return;
+    const duration = Math.min(edge.weight * 100, 900);
+    flowProgress.set(0);
+    const start = performance.now();
+    let frame = 0;
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      flowProgress.set(progress);
+      if (progress < 1) frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [edge.state, edge.weight, flowProgress]);
+
+  if (!sourceNode || !targetNode) return null;
 
   const pathData = computeEdgePath(
     edge.source,
@@ -48,12 +67,6 @@ export const Edge: React.FC<EdgeProps> = React.memo(({ edge, sourceNode, targetN
 
   const color = stateColors[edge.state] || stateColors.default;
   const strokeWidth = stateStrokeWidth[edge.state] || edgeStyle.width;
-
-  const weightX = pathData.midPoint.x - sourceNode.position.x;
-  const weightY = pathData.midPoint.y - sourceNode.position.y;
-
-  const showWeightEdit = useGraphStore.getState().editor.editingWeightEdge === edge.id;
-  const [editWeight, setEditWeight] = React.useState(String(edge.weight));
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -77,25 +90,12 @@ export const Edge: React.FC<EdgeProps> = React.memo(({ edge, sourceNode, targetN
     }
   };
 
-  React.useEffect(() => {
-    if (edge.state === 'relaxed' || edge.state === 'path') {
-      const duration = Math.min(edge.weight * 100, 900);
-      flowProgress.set(0);
-      const start = performance.now();
-      const animate = (now: number) => {
-        const elapsed = now - start;
-        const progress = Math.min(elapsed / duration, 1);
-        flowProgress.set(progress);
-        if (progress < 1) requestAnimationFrame(animate);
-      };
-      requestAnimationFrame(animate);
-    }
-  }, [edge.state, edge.weight, flowProgress]);
-
-  const flowOffset = springFlow;
-
   return (
-    <g onMouseEnter={() => useGraphStore.getState().dispatch({ type: 'SET_HOVERED_EDGE', id: edge.id })} onMouseLeave={() => useGraphStore.getState().dispatch({ type: 'SET_HOVERED_EDGE', id: null })}>
+    <g
+      data-graph-element="edge"
+      onMouseEnter={() => useGraphStore.getState().dispatch({ type: 'SET_HOVERED_EDGE', id: edge.id })}
+      onMouseLeave={() => useGraphStore.getState().dispatch({ type: 'SET_HOVERED_EDGE', id: null })}
+    >
       <path
         d={pathData.fillPath}
         fill={color}
@@ -110,7 +110,7 @@ export const Edge: React.FC<EdgeProps> = React.memo(({ edge, sourceNode, targetN
         stroke={color}
         strokeWidth={strokeWidth}
         strokeDasharray="8 6"
-        strokeDashoffset={flowOffset}
+        strokeDashoffset={springFlow}
         fill="none"
         strokeLinecap="round"
         opacity={edge.state === 'relaxed' || edge.state === 'path' ? 1 : 0}
@@ -122,8 +122,8 @@ export const Edge: React.FC<EdgeProps> = React.memo(({ edge, sourceNode, targetN
       {!showWeightEdit && (
         <g onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
           <motion.circle
-            cx={pathData.midPoint.x - sourceNode.position.x}
-            cy={pathData.midPoint.y - sourceNode.position.y}
+            cx={pathData.midPoint.x}
+            cy={pathData.midPoint.y}
             r={14}
             fill="var(--color-surface)"
             stroke="var(--color-border)"
@@ -133,8 +133,8 @@ export const Edge: React.FC<EdgeProps> = React.memo(({ edge, sourceNode, targetN
             transition={spring.direct}
           />
           <text
-            x={weightX}
-            y={weightY + 4}
+            x={pathData.midPoint.x}
+            y={pathData.midPoint.y + 4}
             textAnchor="middle"
             dominantBaseline="middle"
             fill="var(--color-ink)"
@@ -150,8 +150,8 @@ export const Edge: React.FC<EdgeProps> = React.memo(({ edge, sourceNode, targetN
       )}
       {showWeightEdit && (
         <foreignObject
-          x={weightX - 30}
-          y={weightY - 16}
+          x={pathData.midPoint.x - 30}
+          y={pathData.midPoint.y - 16}
           width={60}
           height={32}
           style={{ pointerEvents: 'all' }}

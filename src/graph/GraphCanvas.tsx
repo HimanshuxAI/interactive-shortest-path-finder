@@ -65,15 +65,20 @@ export const GraphCanvas: React.FC = () => {
       e.preventDefault();
       setIsPanning(true);
       setPanStart({ x: e.clientX - motionX.get(), y: e.clientY - motionY.get() });
-    } else if (e.button === 0 && editor.mode === 'select' && !isGraphElement) {
+    } else if (e.button === 0 && !isGraphElement) {
       const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
+      if (!rect) return;
+      const mode = useGraphStore.getState().editor.mode;
+      if (mode === 'addNode') {
         const x = (e.clientX - rect.left - motionX.get()) / motionScale.get();
         const y = (e.clientY - rect.top - motionY.get()) / motionScale.get();
         addNodeAt({ x, y });
+      } else if (mode === 'addEdge') {
+        dispatch({ type: 'SET_PENDING_EDGE_SOURCE', id: null });
+        dispatch({ type: 'SET_MODE', mode: 'select' });
       }
     }
-  }, [editor.mode, motionX, motionY, motionScale, addNodeAt]);
+  }, [motionX, motionY, motionScale, addNodeAt, dispatch]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isPanning) return;
@@ -184,21 +189,24 @@ interface PendingEdgeProps {
 }
 
 const PendingEdge: React.FC<PendingEdgeProps> = ({ sourceId }) => {
-  const { graph } = useGraphStore();
+  const { graph, viewport } = useGraphStore();
   const sourceNode = graph.nodes.find(n => n.id === sourceId);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       const container = document.querySelector('[data-graph-container]');
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-      }
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      // Screen coordinates have to be un-projected back into graph space.
+      setMousePos({
+        x: (e.clientX - rect.left - viewport.x) / viewport.scale,
+        y: (e.clientY - rect.top - viewport.y) / viewport.scale,
+      });
     };
     window.addEventListener('mousemove', handleMove);
     return () => window.removeEventListener('mousemove', handleMove);
-  }, []);
+  }, [viewport.x, viewport.y, viewport.scale]);
 
   if (!sourceNode) return null;
 

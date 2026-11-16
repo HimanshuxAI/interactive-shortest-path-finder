@@ -129,11 +129,13 @@ export const App: React.FC = () => {
         <span>Space — Play/Pause</span>
         <span>← / → — Step</span>
         <span>R — Reset</span>
-        <span>Del — Delete</span>
-        <span>Click — Add Node</span>
-        <span>Drag Node — Move</span>
-        <span>Drag Node→Node — Add Edge</span>
-        <span>Dbl-click Weight — Edit</span>
+        <span>Del — Delete hovered</span>
+        <span>Esc — Cancel</span>
+        <span>Add Node mode + click — New node</span>
+        <span>Drag node — Move</span>
+        <span>Add Edge mode + click two nodes — Connect</span>
+        <span>Dbl-click weight — Edit</span>
+        <span>Alt/middle drag — Pan · Scroll — Zoom</span>
       </div>
     </div>
   );
