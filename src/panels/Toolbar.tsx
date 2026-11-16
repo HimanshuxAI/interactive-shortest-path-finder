@@ -23,6 +23,55 @@ export const Toolbar: React.FC = () => {
   const currentStep = steps[currentStepIndex];
   const totalCost = algorithm.status === 'complete' ? currentStep?.totalCost : undefined;
 
+  const toolbarGroupStyle: React.CSSProperties = {
+    display: 'flex',
+    gap: 8,
+    alignItems: 'center',
+    background: 'var(--color-surface)',
+    padding: '8px 12px',
+    borderRadius: '12px',
+    boxShadow: 'var(--shadow-md)',
+    border: '1px solid var(--color-border)',
+  };
+
+  const toolbarButtonStyle: React.CSSProperties = {
+    padding: '8px 12px',
+    borderRadius: '8px',
+    background: 'transparent',
+    color: 'var(--color-ink)',
+    fontSize: '13px',
+    fontWeight: 500,
+    fontFamily: 'var(--font-family)',
+    border: '1px solid var(--color-border)',
+    transition: 'background 0.15s, color 0.15s',
+  };
+
+  const handleFit = () => {
+    const currentNodes = useGraphStore.getState().graph.nodes;
+    if (currentNodes.length === 0) return;
+    const padding = 140;
+    const xs = currentNodes.map(n => n.position.x);
+    const ys = currentNodes.map(n => n.position.y);
+    const minX = Math.min(...xs) - padding;
+    const maxX = Math.max(...xs) + padding;
+    const minY = Math.min(...ys) - padding;
+    const maxY = Math.max(...ys) + padding;
+    const width = Math.max(1, maxX - minX);
+    const height = Math.max(1, maxY - minY);
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const scale = Math.max(0.3, Math.min(1.6, Math.min(viewportWidth / width, viewportHeight / height)));
+    const x = (viewportWidth - width * scale) / 2 - minX * scale;
+    const y = (viewportHeight - height * scale) / 2 - minY * scale;
+    dispatch({ type: 'SET_VIEWPORT', viewport: { x, y, scale } });
+  };
+
+  const handleSample = () => {
+    if (window.confirm('Replace the current graph with the sample graph?')) {
+      dispatch({ type: 'RESET_GRAPH' });
+    }
+  };
+
   return (
     <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 100, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--color-surface)', padding: '8 12', borderRadius: '12px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--color-border)' }}>
@@ -79,6 +128,25 @@ export const Toolbar: React.FC = () => {
           }}
         >
           Add Edge
+        </motion.button>
+      </div>
+
+      <div style={toolbarGroupStyle}>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleFit}
+          style={toolbarButtonStyle}
+        >
+          Fit
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleSample}
+          style={toolbarButtonStyle}
+        >
+          Sample
         </motion.button>
       </div>
 

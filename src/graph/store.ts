@@ -10,6 +10,7 @@ import type {
 } from '../types/graph';
 import { computeDijkstraSteps } from '../algorithms/dijkstra';
 import { applyStepToGraph, statusForStep } from './graphState';
+import { createDefaultGraph } from './defaultGraph';
 
 type StoreState = AppState & {
   dispatch: (action: AppAction) => void;
@@ -198,7 +199,12 @@ export const useGraphStore = create<StoreState>()(
           }
 
           case 'RESET_GRAPH': {
-            set(pushHistory(state, defaultGraph));
+            // Reloading the sample is the sensible "start over" here; wiping to
+            // an empty canvas is easy to trigger and hard to recover from.
+            set({
+              ...pushHistory(state, createDefaultGraph()),
+              algorithm: { ...defaultAlgorithm, playbackSpeed: state.algorithm.playbackSpeed },
+            });
             break;
           }
 
