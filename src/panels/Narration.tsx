@@ -23,7 +23,7 @@ export const Narration: React.FC = () => {
         right: 16,
         zIndex: 100,
         maxWidth: 360,
-        padding: '16 20',
+        padding: '16px 20px',
         background: 'var(--color-surface)',
         borderRadius: '16px',
         boxShadow: 'var(--shadow-lg)',

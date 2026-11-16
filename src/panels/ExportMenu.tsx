@@ -46,7 +46,7 @@ export const ExportMenu: React.FC = () => {
         whileTap={{ scale: 0.98 }}
         onClick={() => setIsOpen(!isOpen)}
         style={{
-          padding: '8 12',
+          padding: '8px 12px',
           borderRadius: '8px',
           background: 'var(--color-surface)',
           color: 'var(--color-ink)',
@@ -97,7 +97,7 @@ export const ExportMenu: React.FC = () => {
               onClick={handleExportGraph}
               style={{
                 width: '100%',
-                padding: '12 16',
+                padding: '12px 16px',
                 textAlign: 'left',
                 fontSize: '13px',
                 fontWeight: 500,
@@ -127,7 +127,7 @@ export const ExportMenu: React.FC = () => {
               onClick={handleExportImage}
               style={{
                 width: '100%',
-                padding: '12 16',
+                padding: '12px 16px',
                 textAlign: 'left',
                 fontSize: '13px',
                 fontWeight: 500,
@@ -155,7 +155,7 @@ export const ExportMenu: React.FC = () => {
               onClick={handleSave}
               style={{
                 width: '100%',
-                padding: '12 16',
+                padding: '12px 16px',
                 textAlign: 'left',
                 fontSize: '13px',
                 fontWeight: 500,
@@ -183,7 +183,7 @@ export const ExportMenu: React.FC = () => {
               onClick={handleLoad}
               style={{
                 width: '100%',
-                padding: '12 16',
+                padding: '12px 16px',
                 textAlign: 'left',
                 fontSize: '13px',
                 fontWeight: 500,

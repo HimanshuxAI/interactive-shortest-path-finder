@@ -74,13 +74,13 @@ export const Toolbar: React.FC = () => {
 
   return (
     <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 100, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--color-surface)', padding: '8 12', borderRadius: '12px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--color-border)' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--color-surface)', padding: '8px 12px', borderRadius: '12px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--color-border)' }}>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => dispatch({ type: 'SET_MODE', mode: 'select' })}
           style={{
-            padding: '8 12',
+            padding: '8px 12px',
             borderRadius: '8px',
             background: mode === 'select' ? 'var(--color-coral)' : 'transparent',
             color: mode === 'select' ? 'var(--color-surface)' : 'var(--color-ink)',
@@ -98,7 +98,7 @@ export const Toolbar: React.FC = () => {
           whileTap={{ scale: 0.98 }}
           onClick={() => dispatch({ type: 'SET_MODE', mode: 'addNode' })}
           style={{
-            padding: '8 12',
+            padding: '8px 12px',
             borderRadius: '8px',
             background: mode === 'addNode' ? 'var(--color-coral)' : 'transparent',
             color: mode === 'addNode' ? 'var(--color-surface)' : 'var(--color-ink)',
@@ -116,7 +116,7 @@ export const Toolbar: React.FC = () => {
           whileTap={{ scale: 0.98 }}
           onClick={() => dispatch({ type: 'SET_MODE', mode: 'addEdge' })}
           style={{
-            padding: '8 12',
+            padding: '8px 12px',
             borderRadius: '8px',
             background: mode === 'addEdge' ? 'var(--color-coral)' : 'transparent',
             color: mode === 'addEdge' ? 'var(--color-surface)' : 'var(--color-ink)',
@@ -151,13 +151,13 @@ export const Toolbar: React.FC = () => {
       </div>
 
       {canRun && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--color-surface)', padding: '8 12', borderRadius: '12px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--color-border)' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--color-surface)', padding: '8px 12px', borderRadius: '12px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--color-border)' }}>
           <select
             value={sourceNode || ''}
             onChange={handleSourceSelect}
             disabled={!canRun}
             style={{
-              padding: '8 12',
+              padding: '8px 12px',
               borderRadius: '8px',
               border: '1px solid var(--color-border)',
               background: 'var(--color-surface)',
@@ -176,7 +176,7 @@ export const Toolbar: React.FC = () => {
             onChange={handleTargetSelect}
             disabled={!canRun}
             style={{
-              padding: '8 12',
+              padding: '8px 12px',
               borderRadius: '8px',
               border: '1px solid var(--color-border)',
               background: 'var(--color-surface)',
@@ -228,14 +228,14 @@ export const Toolbar: React.FC = () => {
       )}
 
       {hasSteps && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--color-surface)', padding: '8 12', borderRadius: '12px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--color-border)' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--color-surface)', padding: '8px 12px', borderRadius: '12px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--color-border)' }}>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={stepBackward}
             disabled={currentStepIndex <= 0}
             style={{
-              padding: '8 12',
+              padding: '8px 12px',
               borderRadius: '8px',
               background: 'var(--color-surface)',
               color: currentStepIndex <= 0 ? 'var(--color-ink-muted)' : 'var(--color-ink)',
@@ -253,7 +253,7 @@ export const Toolbar: React.FC = () => {
             whileTap={{ scale: 0.98 }}
             onClick={togglePlayback}
             style={{
-              padding: '8 16',
+              padding: '8px 16px',
               borderRadius: '8px',
               background: isPlaying ? 'var(--color-coral)' : 'var(--color-surface)',
               color: isPlaying ? 'var(--color-surface)' : 'var(--color-ink)',
@@ -271,7 +271,7 @@ export const Toolbar: React.FC = () => {
             onClick={stepForward}
             disabled={currentStepIndex >= steps.length - 1}
             style={{
-              padding: '8 12',
+              padding: '8px 12px',
               borderRadius: '8px',
               background: 'var(--color-surface)',
               color: currentStepIndex >= steps.length - 1 ? 'var(--color-ink-muted)' : 'var(--color-ink)',
@@ -289,7 +289,7 @@ export const Toolbar: React.FC = () => {
             whileTap={{ scale: 0.98 }}
             onClick={resetAlgorithm}
             style={{
-              padding: '8 12',
+              padding: '8px 12px',
               borderRadius: '8px',
               background: 'var(--color-surface)',
               color: 'var(--color-ink)',

@@ -52,7 +52,7 @@ export const Timeline: React.FC = () => {
         transform: 'translateX(-50%)',
         zIndex: 100,
         width: 'min(90vw, 600px)',
-        padding: '16 20',
+        padding: '16px 20px',
         background: 'var(--color-surface)',
         borderRadius: '16px',
         boxShadow: 'var(--shadow-lg)',
@@ -188,7 +188,7 @@ export const Timeline: React.FC = () => {
             value={playbackSpeed}
             onChange={e => setPlaybackSpeed(parseFloat(e.target.value))}
             style={{
-              padding: '4 8',
+              padding: '4px 8px',
               borderRadius: '6px',
               border: '1px solid var(--color-border)',
               background: 'var(--color-surface)',
