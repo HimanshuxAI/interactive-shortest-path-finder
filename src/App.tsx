@@ -32,8 +32,11 @@ function createDefaultGraph() {
   return { nodes, edges };
 }
 
+const STEP_INTERVAL_MS = 900;
+
 export const App: React.FC = () => {
   const { loadGraph, algorithm, dispatch } = useGraphStore();
+  const { isPlaying, playbackSpeed, steps, currentStepIndex } = algorithm;
 
   useEffect(() => {
     const saved = localStorage.getItem('shortest-path-finder-graph');
@@ -44,6 +47,17 @@ export const App: React.FC = () => {
       loadGraph();
     }
   }, [loadGraph, dispatch]);
+
+  // Drive playback. Each tick advances one step; the store stops playback once
+  // it reaches a terminal step.
+  useEffect(() => {
+    if (!isPlaying || steps.length === 0) return;
+    const delay = Math.max(80, STEP_INTERVAL_MS / playbackSpeed);
+    const timer = window.setInterval(() => {
+      useGraphStore.getState().dispatch({ type: 'NEXT_STEP' });
+    }, delay);
+    return () => window.clearInterval(timer);
+  }, [isPlaying, playbackSpeed, steps.length, currentStepIndex]);
 
   useHotkeys(' ', () => {
     if (algorithm.steps.length > 0) {
@@ -80,6 +94,15 @@ export const App: React.FC = () => {
       dispatch({ type: 'REMOVE_NODE', id: editor.hoveredNode });
     } else if (editor.hoveredEdge) {
       dispatch({ type: 'REMOVE_EDGE', id: editor.hoveredEdge });
+    }
+  }, [dispatch]);
+
+  useHotkeys('esc', () => {
+    const store = useGraphStore.getState();
+    if (store.editor.pendingEdgeSource || store.editor.editingWeightEdge) {
+      store.dispatch({ type: 'SET_PENDING_EDGE_SOURCE', id: null });
+      store.dispatch({ type: 'SET_EDITING_WEIGHT', id: null });
+      store.dispatch({ type: 'SET_MODE', mode: 'select' });
     }
   }, [dispatch]);
 

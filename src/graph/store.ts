@@ -60,6 +60,7 @@ const defaultEditor: EditorState = {
   hoveredNode: null,
   hoveredEdge: null,
   editingWeightEdge: null,
+  draggingNode: null,
 };
 
 const defaultViewport = { x: 0, y: 0, scale: 1 };
@@ -80,11 +81,18 @@ function pushHistory(state: AppState, newGraph: GraphData): AppState {
   return { ...state, graph: newGraph, history: newHistory, historyIndex: newHistory.length - 1 };
 }
 
-function applyStepToGraph(graph: GraphData, step: DijkstraStep, sourceNode: string | null, targetNode: string | null): GraphData {
+export function applyStepToGraph(graph: GraphData, step: DijkstraStep, sourceNode: string | null, targetNode: string | null): GraphData {
   const { nodes, edges } = graph;
-  const pathSet = new Set(step.path ?? []);
+  const path = step.path ?? [];
+  const pathSet = new Set(path);
   const isPathNode = (id: string) => pathSet.has(id);
-  const isPathEdge = (edge: GraphEdge) => step.path && step.path.includes(edge.source) && step.path.includes(edge.target);
+  // Only light up edges that actually join two consecutive path nodes.
+  const isPathEdge = (edge: GraphEdge) => {
+    for (let i = 0; i < path.length - 1; i++) {
+      if (edge.source === path[i] && edge.target === path[i + 1]) return true;
+    }
+    return false;
+  };
 
   return {
     nodes: nodes.map(n => {
@@ -113,6 +121,13 @@ function applyStepToGraph(graph: GraphData, step: DijkstraStep, sourceNode: stri
       return { ...e, state: edgeState, flowProgress };
     }),
   };
+}
+
+function statusForStep(step: DijkstraStep | undefined): AlgorithmState['status'] {
+  if (!step) return 'idle';
+  if (step.type === 'complete') return 'complete';
+  if (step.type === 'no-path') return 'no-path';
+  return 'running';
 }
 
 export const useGraphStore = create<StoreState>()(
@@ -203,6 +218,27 @@ export const useGraphStore = create<StoreState>()(
             break;
           }
 
+          case 'SET_DRAGGING_NODE': {
+            set({ editor: { ...state.editor, draggingNode: action.id } });
+            break;
+          }
+
+          case 'MOVE_NODE': {
+            // Live drag updates skip the history stack; COMMIT_GRAPH records the result.
+            set({
+              graph: {
+                nodes: state.graph.nodes.map(n => (n.id === action.id ? { ...n, position: action.position } : n)),
+                edges: state.graph.edges,
+              },
+            });
+            break;
+          }
+
+          case 'COMMIT_GRAPH': {
+            set(pushHistory(state, state.graph));
+            break;
+          }
+
           case 'UPDATE_WEIGHT': {
             const newGraph: GraphData = {
               nodes: state.graph.nodes,
@@ -244,6 +280,7 @@ export const useGraphStore = create<StoreState>()(
             if (!action.source || !action.target) break;
             const steps = computeDijkstraSteps(state.graph.nodes, state.graph.edges, action.source, action.target);
             set({
+              graph: applyStepToGraph(state.graph, steps[0], action.source, action.target),
               algorithm: {
                 ...state.algorithm,
                 status: 'running',
@@ -257,30 +294,107 @@ export const useGraphStore = create<StoreState>()(
             break;
           }
 
+          case 'SET_ENDPOINTS': {
+            const source = action.source !== undefined ? action.source : state.algorithm.sourceNode;
+            const target = action.target !== undefined ? action.target : state.algorithm.targetNode;
+            if (source && target && source !== target) {
+              const steps = computeDijkstraSteps(state.graph.nodes, state.graph.edges, source, target);
+              set({
+                graph: applyStepToGraph(state.graph, steps[0], source, target),
+                algorithm: {
+                  ...state.algorithm,
+                  status: 'running',
+                  steps,
+                  currentStepIndex: 0,
+                  sourceNode: source,
+                  targetNode: target,
+                  isPlaying: true,
+                },
+              });
+            } else {
+              set({ algorithm: { ...state.algorithm, sourceNode: source, targetNode: target } });
+            }
+            break;
+          }
+
           case 'SET_STEPS': {
-            set({ algorithm: { ...state.algorithm, steps: action.steps, currentStepIndex: 0 } });
+            if (action.steps.length === 0) {
+              set({ algorithm: { ...state.algorithm, steps: [], currentStepIndex: -1 } });
+              break;
+            }
+            set({
+              graph: applyStepToGraph(state.graph, action.steps[0], state.algorithm.sourceNode, state.algorithm.targetNode),
+              algorithm: { ...state.algorithm, steps: action.steps, currentStepIndex: 0, status: 'running' },
+            });
             break;
           }
 
           case 'NEXT_STEP': {
-            if (state.algorithm.currentStepIndex >= state.algorithm.steps.length - 1) break;
-            set({ algorithm: { ...state.algorithm, currentStepIndex: state.algorithm.currentStepIndex + 1 } });
+            const { steps, currentStepIndex, sourceNode, targetNode } = state.algorithm;
+            if (steps.length === 0) break;
+            if (currentStepIndex >= steps.length - 1) {
+              set({ algorithm: { ...state.algorithm, isPlaying: false, status: statusForStep(steps[steps.length - 1]) } });
+              break;
+            }
+            const nextIndex = currentStepIndex + 1;
+            const nextStep = steps[nextIndex];
+            set({
+              graph: applyStepToGraph(state.graph, nextStep, sourceNode, targetNode),
+              algorithm: {
+                ...state.algorithm,
+                currentStepIndex: nextIndex,
+                status: statusForStep(nextStep),
+                isPlaying: nextStep.type === 'complete' || nextStep.type === 'no-path' ? false : state.algorithm.isPlaying,
+              },
+            });
             break;
           }
 
           case 'PREV_STEP': {
-            if (state.algorithm.currentStepIndex <= 0) break;
-            set({ algorithm: { ...state.algorithm, currentStepIndex: state.algorithm.currentStepIndex - 1 } });
+            const { steps, currentStepIndex, sourceNode, targetNode } = state.algorithm;
+            if (steps.length === 0 || currentStepIndex <= 0) break;
+            const prevIndex = currentStepIndex - 1;
+            const prevStep = steps[prevIndex];
+            set({
+              graph: applyStepToGraph(state.graph, prevStep, sourceNode, targetNode),
+              algorithm: {
+                ...state.algorithm,
+                currentStepIndex: prevIndex,
+                status: statusForStep(prevStep),
+                isPlaying: false,
+              },
+            });
             break;
           }
 
           case 'GOTO_STEP': {
-            const idx = Math.max(0, Math.min(action.index, state.algorithm.steps.length - 1));
-            set({ algorithm: { ...state.algorithm, currentStepIndex: idx } });
+            const { steps, sourceNode, targetNode } = state.algorithm;
+            if (steps.length === 0) break;
+            const idx = Math.max(0, Math.min(action.index, steps.length - 1));
+            const step = steps[idx];
+            set({
+              graph: applyStepToGraph(state.graph, step, sourceNode, targetNode),
+              algorithm: {
+                ...state.algorithm,
+                currentStepIndex: idx,
+                status: statusForStep(step),
+                isPlaying: false,
+              },
+            });
             break;
           }
 
           case 'PLAY': {
+            const { steps, currentStepIndex, sourceNode, targetNode } = state.algorithm;
+            if (steps.length === 0) break;
+            if (currentStepIndex >= steps.length - 1) {
+              // Replay from the top.
+              set({
+                graph: applyStepToGraph(state.graph, steps[0], sourceNode, targetNode),
+                algorithm: { ...state.algorithm, currentStepIndex: 0, status: 'running', isPlaying: true },
+              });
+              break;
+            }
             set({ algorithm: { ...state.algorithm, isPlaying: true, status: 'running' } });
             break;
           }

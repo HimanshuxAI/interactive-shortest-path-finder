@@ -56,6 +56,7 @@ export interface EditorState {
   hoveredNode: string | null;
   hoveredEdge: string | null;
   editingWeightEdge: string | null;
+  draggingNode: string | null;
 }
 
 export interface AppState {
@@ -80,6 +81,9 @@ export type EditorAction =
   | { type: 'SET_HOVERED_EDGE'; id: string | null }
   | { type: 'SET_EDITING_WEIGHT'; id: string | null }
   | { type: 'UPDATE_WEIGHT'; edgeId: string; weight: number }
+  | { type: 'SET_DRAGGING_NODE'; id: string | null }
+  | { type: 'MOVE_NODE'; id: string; position: Point }
+  | { type: 'COMMIT_GRAPH' }
   | { type: 'RESET_GRAPH' }
   | { type: 'UNDO' }
   | { type: 'REDO' }
@@ -88,6 +92,7 @@ export type EditorAction =
 
 export type AlgorithmAction =
   | { type: 'START'; source: string; target: string }
+  | { type: 'SET_ENDPOINTS'; source?: string | null; target?: string | null }
   | { type: 'SET_STEPS'; steps: DijkstraStep[] }
   | { type: 'NEXT_STEP' }
   | { type: 'PREV_STEP' }
